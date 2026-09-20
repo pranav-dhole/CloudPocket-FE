@@ -53,7 +53,7 @@ const Dashboard = () => {
       }
 
       const data = await res.json();
-      setFolderName(data.folderName);
+      setFolderName(data.name);
       setFilesList(data.files || []);
       setFoldersList(data.folders || []);
 
@@ -339,22 +339,22 @@ const Dashboard = () => {
 
         {hasItems ? (
           <section className="dashboard__grid">
-            {foldersList.map(({ id, folderName }) => (
+            {foldersList.map(({ id, name }) => (
               <FolderCard
                 key={`folder-${id}`}
                 id={id}
-                folderName={folderName}
+                folderName={name}
                 onOpen={handleFolderOpen}
                 onRename={handleFolderRenameStart}
                 onDelete={handleFolderDelete}
               />
             ))}
 
-            {filesList.map(({ id, fileName }) => (
+            {filesList.map(({ id, name }) => (
               <FileCard
                 key={`file-${id}`}
                 id={id}
-                fileName={fileName}
+                fileName={name}
                 baseUrl={BASE_URL}
                 onRename={handleFileRenameStart}
                 onDelete={handleFileDelete}
