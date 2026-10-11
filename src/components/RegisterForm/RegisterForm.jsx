@@ -32,6 +32,10 @@ export default function RegisterForm() {
     e.preventDefault();
 
     try {
+      if (form.name.trim().length < 3) {
+        setErrors("Name must be at least 3 characters long");
+        return;
+      }
       const res = await fetch(`${BASE_URL}/users/register`, {
         method: "POST",
         headers: {
@@ -79,7 +83,7 @@ export default function RegisterForm() {
           </p>
         </div>
 
-        <form className="register-form" onSubmit={handleSubmit} noValidate>
+        <form className="register-form" onSubmit={handleSubmit}>
           <div className="register-field">
             <label className="register-label" htmlFor="name">
               Name
@@ -94,6 +98,7 @@ export default function RegisterForm() {
               value={form.name}
               onChange={handleChange}
               autoComplete="name"
+              minLength={3}
             />
           </div>
 
