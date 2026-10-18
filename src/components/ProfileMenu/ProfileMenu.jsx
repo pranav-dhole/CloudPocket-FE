@@ -78,6 +78,26 @@ const ProfileMenu = () => {
     }
   }
 
+  async function handleAllLogout() {
+    try {
+      const res = await fetch(`${BASE_URL}/users/logoutAll`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        console.error("Logouts failed");
+        return;
+      }
+
+      setUser(null);
+      setIsOpen(false);
+      navigate("/login");
+    } catch (err) {
+      console.error("Logouts failed:", err);
+    }
+  }
+
   const getInitial = () => {
     if (!user?.name) return "?";
 
@@ -123,6 +143,15 @@ const ProfileMenu = () => {
               >
                 <span>↪</span>
                 Log out
+              </button>
+
+              <button
+                type="button"
+                className="profile-menu__action profile-menu__action--logout"
+                onClick={handleAllLogout}
+              >
+                <span>↪</span>
+                Log out from all
               </button>
             </>
           ) : (
