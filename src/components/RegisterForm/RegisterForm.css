@@ -188,6 +188,12 @@
   outline-offset: 3px;
 }
 
+.register-card__message {
+  color: #15803d;
+  font-size: 0.875rem;
+  margin: 0 0 12px;
+}
+
 @media (max-width: 500px) {
   .register-page {
     padding: 16px;
