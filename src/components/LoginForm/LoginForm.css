@@ -192,6 +192,11 @@ a {
   font-weight: 700;
 }
 
+.google-auth {
+  display: flex;
+  justify-content: center;
+}
+
 @media (max-width: 500px) {
   .login-page {
     padding: 16px;

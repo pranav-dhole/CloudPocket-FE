@@ -194,6 +194,11 @@
   margin: 0 0 12px;
 }
 
+.google-auth {
+  display: flex;
+  align-items: center;
+}
+
 @media (max-width: 500px) {
   .register-page {
     padding: 16px;

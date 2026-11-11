@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import "./LoginForm.css";
+import { GoogleLogin } from "@react-oauth/google";
+import { loginWithGoogle } from "../../apis/loginWithGoogle";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -123,6 +125,33 @@ export default function LoginForm() {
           <p>
             Don't have an account, <Link to={"/register"}>Register here.</Link>
           </p>
+
+          <div className="or">
+            <span>Or</span>
+          </div>
+
+          <div className="google-auth">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                console.log(credentialResponse);
+                const data = await loginWithGoogle(
+                  credentialResponse.credential,
+                );
+                if (data.error) {
+                  console.log(data);
+                  return;
+                }
+                navigate("/");
+              }}
+              onError={() => {
+                console.log("Login Failed");
+              }}
+              theme="filled_blue"
+              shape="rectangular"
+              text="continue_with"
+              useOneTap
+            />
+          </div>
         </form>
       </div>
     </main>
