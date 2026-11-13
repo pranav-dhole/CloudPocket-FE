@@ -33,7 +33,7 @@ export default function LoginForm() {
     e.preventDefault();
 
     try {
-      const res = await fetch(`${BASE_URL}/users/login`, {
+      const res = await fetch(`${BASE_URL}/user/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

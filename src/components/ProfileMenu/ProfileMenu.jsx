@@ -19,7 +19,7 @@ const ProfileMenu = () => {
 
   async function fetchUser() {
     try {
-      const res = await fetch(`${BASE_URL}/users`, {
+      const res = await fetch(`${BASE_URL}/user`, {
         credentials: "include",
       });
 
@@ -60,7 +60,7 @@ const ProfileMenu = () => {
 
   async function handleLogout() {
     try {
-      const res = await fetch(`${BASE_URL}/users/logout`, {
+      const res = await fetch(`${BASE_URL}/user/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -80,7 +80,7 @@ const ProfileMenu = () => {
 
   async function handleAllLogout() {
     try {
-      const res = await fetch(`${BASE_URL}/users/logoutAll`, {
+      const res = await fetch(`${BASE_URL}/user/logoutAll`, {
         method: "POST",
         credentials: "include",
       });

@@ -150,7 +150,7 @@ export default function RegisterForm() {
       setErrors("");
       setMessage("");
 
-      const res = await fetch(`${BASE_URL}/users/register`, {
+      const res = await fetch(`${BASE_URL}/user/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
