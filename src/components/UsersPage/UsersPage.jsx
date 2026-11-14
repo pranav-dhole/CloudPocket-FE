@@ -12,29 +12,47 @@ export default function UsersPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const res = await fetch(`${BASE_URL}/user/users`, {
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          navigate("/");
-          throw new Error("Unable to fetch users.");
-        }
-
-        const data = await res.json();
-        setUsers(data);
-      } catch (err) {
-        console.error("Users fetch error:", err);
-        setError("Could not load users. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchUsers();
   }, []);
+
+  async function fetchUsers() {
+    try {
+      const res = await fetch(`${BASE_URL}/user/users`, {
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        navigate("/");
+        throw new Error("Unable to fetch users.");
+      }
+
+      const data = await res.json();
+      setUsers(data);
+    } catch (err) {
+      console.error("Users fetch error:", err);
+      setError("Could not load users. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLogout(userId) {
+    try {
+      const res = await fetch(`${BASE_URL}/user/logoutByAdmin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      fetchUsers();
+    } catch (err) {
+      console.log("Logout by admin error: ", err);
+      setError("Could not logout the user. Please try again.");
+    }
+  }
 
   if (loading) {
     return <div className="users-page">Loading users...</div>;
@@ -90,7 +108,12 @@ export default function UsersPage() {
                     user.isLoggedIn !== null && (
                       <td>
                         {user.isLoggedIn ? (
-                          <button className="logout-btn">Logout</button>
+                          <button
+                            className="logout-btn"
+                            onClick={() => handleLogout(user.id)}
+                          >
+                            Logout
+                          </button>
                         ) : (
                           <div>Logged out</div>
                         )}
