@@ -15,7 +15,7 @@ function App() {
         <Route path="/folder/:folderId" element={<Dashboard />} />
         <Route path="/register" element={<RegisterForm />} />
         <Route path="/login" element={<LoginForm />} />
-        <Route path="/admin/users" element={<UsersPage />} />
+        <Route path="/users" element={<UsersPage />} />
       </Routes>
     </BrowserRouter>
   );
