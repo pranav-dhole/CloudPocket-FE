@@ -138,6 +138,19 @@
   background-color: #414141;
 }
 
+.delete-btn {
+  padding: 8px 12px;
+  color: white;
+  background-color: rgb(223, 43, 43);
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+}
+
+.delete-btn:hover {
+  background-color: #b12d2d;
+}
+
 @media (max-width: 650px) {
   .users-page {
     padding: 24px 16px;
