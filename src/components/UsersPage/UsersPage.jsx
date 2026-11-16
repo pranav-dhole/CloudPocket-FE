@@ -9,6 +9,9 @@ export default function UsersPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const navigate = useNavigate();
 
@@ -48,7 +51,13 @@ export default function UsersPage() {
         body: JSON.stringify({ userId }),
         credentials: "include",
       });
+
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Logout failed");
+      }
+
       fetchUsers();
     } catch (err) {
       console.log("Logout by admin error: ", err);
@@ -56,21 +65,54 @@ export default function UsersPage() {
     }
   }
 
-  async function handleDelete(userId) {
+  function openDeleteModal(user) {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  }
+
+  function closeDeleteModal() {
+    if (isDeleting) return;
+
+    setSelectedUser(null);
+    setShowDeleteModal(false);
+  }
+
+  async function handleDelete(deleteType) {
+    if (!selectedUser || isDeleting) return;
+
+    const endpoint =
+      deleteType === "soft" ? "/user/softDeleteByAdmin" : "/user/deleteByAdmin";
+
     try {
-      const res = await fetch(`${BASE_URL}/user/deleteByAdmin`, {
-        method: "POST",
+      setIsDeleting(true);
+      setError("");
+
+      const res = await fetch(`${BASE_URL}${endpoint}`, {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({
+          userId: selectedUser._id ?? selectedUser.id,
+        }),
         credentials: "include",
       });
+
       const data = await res.json();
-      fetchUsers();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Delete failed");
+      }
+
+      setShowDeleteModal(false);
+      setSelectedUser(null);
+
+      await fetchUsers();
     } catch (err) {
-      console.log("Delete by admin error: ", err);
+      console.error("Delete by admin error:", err);
       setError("Could not delete the user. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -86,7 +128,6 @@ export default function UsersPage() {
       }
 
       const data = await res.json();
-
       setCurrentUser(data);
     } catch (err) {
       console.error("Failed to fetch user:", err);
@@ -100,7 +141,7 @@ export default function UsersPage() {
     return <div className="users-page">Loading users...</div>;
   }
 
-  if (error) {
+  if (error && users.length === 0) {
     return <div className="users-page users-page__error">{error}</div>;
   }
 
@@ -111,13 +152,20 @@ export default function UsersPage() {
           <p className="users-page__eyebrow">Administration</p>
           <h1>Users</h1>
           <p>Manage and monitor registered users.</p>
+
           <h3>
-            {currentUser.name} : {currentUser.role}
+            {currentUser?.name} : {currentUser?.role}
           </h3>
         </div>
 
         <span className="users-page__count">{users.length} users</span>
       </header>
+
+      {error && (
+        <p className="users-page__error" role="alert">
+          {error}
+        </p>
+      )}
 
       <section className="users-table-wrapper">
         <table className="users-table">
@@ -127,16 +175,17 @@ export default function UsersPage() {
               <th>Email</th>
               <th>isLoggedIn</th>
               <th></th>
-              {currentUser.role === "Admin" && <th></th>}
+              {currentUser?.role === "Admin" && <th></th>}
             </tr>
           </thead>
 
           <tbody>
             {users.length > 0 ? (
               users.map((user) => (
-                <tr key={user.id}>
+                <tr key={user._id ?? user.id}>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
+
                   <td>
                     <span
                       className={`users-status ${
@@ -149,12 +198,13 @@ export default function UsersPage() {
                       {user.isLoggedIn ? "Logged In" : "Logged Out"}
                     </span>
                   </td>
-                  {currentUser.role !== "User" && (
+
+                  {currentUser?.role !== "User" && (
                     <td>
                       {user.isLoggedIn ? (
                         <button
                           className="logout-btn"
-                          onClick={() => handleLogout(user.id)}
+                          onClick={() => handleLogout(user._id ?? user.id)}
                         >
                           Logout
                         </button>
@@ -163,11 +213,12 @@ export default function UsersPage() {
                       )}
                     </td>
                   )}
-                  {currentUser.role === "Admin" && user && (
+
+                  {currentUser?.role === "Admin" && (
                     <td>
                       <button
                         className="delete-btn"
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => openDeleteModal(user)}
                       >
                         Delete
                       </button>
@@ -177,7 +228,7 @@ export default function UsersPage() {
               ))
             ) : (
               <tr>
-                <td colSpan="4" className="users-table__empty">
+                <td colSpan="5" className="users-table__empty">
                   No users found.
                 </td>
               </tr>
@@ -185,6 +236,84 @@ export default function UsersPage() {
           </tbody>
         </table>
       </section>
+
+      {showDeleteModal && selectedUser && (
+        <div className="delete-modal-backdrop" onClick={closeDeleteModal}>
+          <div
+            className="delete-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+          >
+            <div className="delete-modal__header">
+              <div>
+                <p className="users-page__eyebrow">User management</p>
+
+                <h2 id="delete-modal-title">Delete user ?</h2>
+              </div>
+
+              <button
+                type="button"
+                className="delete-modal__close"
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                aria-label="Close popup"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="delete-modal__description">
+              Choose how you want to delete <strong>{selectedUser.name}</strong>
+              .
+            </p>
+
+            <div className="delete-modal__options">
+              <button
+                type="button"
+                className="delete-modal__option delete-modal__option--soft"
+                onClick={() => handleDelete("soft")}
+                disabled={isDeleting}
+              >
+                <span className="delete-modal__option-title">Soft Delete</span>
+
+                <span className="delete-modal__option-description">
+                  Deactivate the account while keeping its database record.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="delete-modal__option delete-modal__option--hard"
+                onClick={() => handleDelete("hard")}
+                disabled={isDeleting}
+              >
+                <span className="delete-modal__option-title">Hard Delete</span>
+
+                <span className="delete-modal__option-description">
+                  Permanently remove the user from the database.
+                </span>
+              </button>
+            </div>
+
+            <div className="delete-modal__footer">
+              <button
+                type="button"
+                className="delete-modal__cancel"
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+
+              {isDeleting && (
+                <span className="delete-modal__loading">Processing...</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
