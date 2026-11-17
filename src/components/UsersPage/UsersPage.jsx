@@ -14,6 +14,11 @@ export default function UsersPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRecoverModal, setShowRecoverModal] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
+  const [openMenuUserId, setOpenMenuUserId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+  });
 
   const navigate = useNavigate();
 
@@ -187,6 +192,33 @@ export default function UsersPage() {
     }
   }
 
+  function toggleActionMenu(userId, event) {
+    if (openMenuUserId === userId) {
+      setOpenMenuUserId(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    const menuWidth = 160;
+    const menuHeight = 120;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    const top =
+      spaceBelow >= menuHeight + 8
+        ? rect.bottom + 6
+        : Math.max(8, rect.top - menuHeight - 6);
+
+    const left = Math.max(
+      8,
+      Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8),
+    );
+
+    setMenuPosition({ top, left });
+    setOpenMenuUserId(userId);
+  }
+
   if (loading) {
     return <div className="users-page">Loading users...</div>;
   }
@@ -225,10 +257,7 @@ export default function UsersPage() {
               <th>Email</th>
               <th>isLoggedIn</th>
               <th>Role</th>
-              <th></th>
-              {(currentUser?.role === "Admin" ||
-                currentUser?.role === "Owner") && <th></th>}
-              {currentUser?.role === "Owner" && <th></th>}
+              <th>Actions</th>
             </tr>
           </thead>
 
@@ -254,51 +283,77 @@ export default function UsersPage() {
 
                   <td>{user.role}</td>
 
-                  {currentUser?.role !== "User" && (
-                    <td>
-                      {user.isLoggedIn ? (
+                  <td className="users-table__actions">
+                    {currentUser?.role !== "User" && (
+                      <div className="action-menu-wrapper">
                         <button
-                          className="logout-btn"
-                          onClick={() => handleLogout(user._id ?? user.id)}
+                          type="button"
+                          className="action-menu-trigger"
+                          onClick={(e) =>
+                            toggleActionMenu(user._id ?? user.id, e)
+                          }
+                          aria-label={`Actions for ${user.name}`}
+                          aria-expanded={
+                            openMenuUserId === (user._id ?? user.id)
+                          }
                         >
-                          Logout
+                          &#8942;
                         </button>
-                      ) : (
-                        <div>Logged out</div>
-                      )}
-                    </td>
-                  )}
 
-                  {(currentUser?.role === "Admin" ||
-                    currentUser?.role === "Owner") && (
-                    <td>
-                      {user.isDeleted ? (
-                        <div>Soft Deleted</div>
-                      ) : (
-                        <button
-                          className="delete-btn"
-                          onClick={() => openDeleteModal(user)}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  )}
+                        {openMenuUserId === (user._id ?? user.id) && (
+                          <div
+                            className="action-menu"
+                            style={{
+                              position: "fixed",
+                              top: `${menuPosition.top}px`,
+                              left: `${menuPosition.left}px`,
+                            }}
+                          >
+                            {user.isLoggedIn && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuUserId(null);
+                                  handleLogout(user._id ?? user.id);
+                                }}
+                              >
+                                Logout
+                              </button>
+                            )}
 
-                  {currentUser?.role === "Owner" && (
-                    <td>
-                      {user.isDeleted ? (
-                        <button
-                          className="recover-btn"
-                          onClick={() => openRecoverModal(user)}
-                        >
-                          Recover
-                        </button>
-                      ) : (
-                        <div>Not recoverable</div>
-                      )}
-                    </td>
-                  )}
+                            {!user.isDeleted &&
+                              (currentUser?.role === "Admin" ||
+                                currentUser?.role === "Owner") && (
+                                <button
+                                  type="button"
+                                  className="action-menu__danger"
+                                  onClick={() => {
+                                    setOpenMenuUserId(null);
+                                    openDeleteModal(user);
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              )}
+
+                            {user.isDeleted &&
+                              currentUser?.role === "Owner" && (
+                                <button
+                                  type="button"
+                                  className="action-menu__recover"
+                                  onClick={() => {
+                                    setOpenMenuUserId(null);
+                                    openRecoverModal(user);
+                                  }}
+                                >
+                                  Recover
+                                </button>
+                              )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))
             ) : (
@@ -341,7 +396,6 @@ export default function UsersPage() {
 
             <p className="delete-modal__description">
               Choose how you want to delete <strong>{selectedUser.name}</strong>
-              .
             </p>
 
             <div className="delete-modal__options">

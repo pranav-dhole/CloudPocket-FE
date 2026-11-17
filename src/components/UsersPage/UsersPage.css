@@ -342,6 +342,73 @@
   text-align: center;
 }
 
+.users-table__actions {
+  width: 75px;
+  text-align: center;
+}
+
+.action-menu-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-menu-trigger {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.action-menu-trigger:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.action-menu {
+  position: fixed;
+  z-index: 9999;
+  width: 160px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--card-background, #f8fafc);
+  border: 1px solid var(--border-color, #8a8a8a);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.action-menu button {
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.action-menu button:hover {
+  background: rgba(180, 180, 180, 0.15);
+}
+
+.action-menu .action-menu__danger {
+  color: #ef5350;
+}
+
+.action-menu .action-menu__recover {
+  color: #4caf50;
+}
+
 @media (max-width: 650px) {
   .users-page {
     padding: 24px 16px;
