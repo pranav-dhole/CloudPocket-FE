@@ -1,19 +1,33 @@
 import { useEffect, useState } from "react";
-import "./UsersPage.css";
 import { useNavigate } from "react-router";
+import "./UsersPage.css";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+const AVAILABLE_ROLES = ["User", "Manager", "Admin", "Owner"];
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // Delete modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Recover modal
   const [showRecoverModal, setShowRecoverModal] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
+
+  // Role modal
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("");
+  const [isChangingRole, setIsChangingRole] = useState(false);
+
+  // Three-dot menu
   const [openMenuUserId, setOpenMenuUserId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({
     top: 0,
@@ -48,8 +62,33 @@ export default function UsersPage() {
     }
   }
 
+  async function fetchUser() {
+    try {
+      const res = await fetch(`${BASE_URL}/user`, {
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        setCurrentUser(null);
+        return;
+      }
+
+      const data = await res.json();
+      setCurrentUser(data);
+    } catch (err) {
+      console.error("Failed to fetch user:", err);
+      setCurrentUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ---------------- LOGOUT ----------------
+
   async function handleLogout(userId) {
     try {
+      setError("");
+
       const res = await fetch(`${BASE_URL}/user/logoutByAdmin`, {
         method: "POST",
         headers: {
@@ -65,12 +104,14 @@ export default function UsersPage() {
         throw new Error(data?.message || "Logout failed");
       }
 
-      fetchUsers();
+      await fetchUsers();
     } catch (err) {
-      console.log("Logout by admin error: ", err);
+      console.error("Logout by admin error:", err);
       setError("Could not logout the user. Please try again.");
     }
   }
+
+  // ---------------- DELETE ----------------
 
   function openDeleteModal(user) {
     setSelectedUser(user);
@@ -123,6 +164,8 @@ export default function UsersPage() {
     }
   }
 
+  // ---------------- RECOVER ----------------
+
   function openRecoverModal(user) {
     setSelectedUser(user);
     setShowRecoverModal(true);
@@ -171,26 +214,66 @@ export default function UsersPage() {
     }
   }
 
-  async function fetchUser() {
+  // ---------------- CHANGE ROLE ----------------
+
+  function openRoleModal(user) {
+    setSelectedUser(user);
+    setSelectedRole(user.role);
+    setShowRoleModal(true);
+  }
+
+  function closeRoleModal() {
+    if (isChangingRole) return;
+
+    setSelectedUser(null);
+    setSelectedRole("");
+    setShowRoleModal(false);
+  }
+
+  async function handleChangeRole() {
+    if (!selectedUser || !selectedRole || isChangingRole) return;
+
+    if (selectedRole === selectedUser.role) {
+      closeRoleModal();
+      return;
+    }
+
     try {
-      const res = await fetch(`${BASE_URL}/user`, {
+      setIsChangingRole(true);
+      setError("");
+
+      const res = await fetch(`${BASE_URL}/user/changeRole`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: selectedUser._id ?? selectedUser.id,
+          newRole: selectedRole,
+        }),
         credentials: "include",
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        setCurrentUser(null);
-        return;
+        throw new Error(data?.message || "Role update failed");
       }
 
-      const data = await res.json();
-      setCurrentUser(data);
+      setShowRoleModal(false);
+      setSelectedUser(null);
+      setSelectedRole("");
+
+      await fetchUsers();
     } catch (err) {
-      console.error("Failed to fetch user:", err);
-      setCurrentUser(null);
+      console.error("Change role error:", err);
+      setError(err.message || "Could not change the user's role.");
     } finally {
-      setLoading(false);
+      setIsChangingRole(false);
     }
   }
+
+  // ---------------- THREE-DOT MENU ----------------
 
   function toggleActionMenu(userId, event) {
     if (openMenuUserId === userId) {
@@ -200,8 +283,8 @@ export default function UsersPage() {
 
     const rect = event.currentTarget.getBoundingClientRect();
 
-    const menuWidth = 160;
-    const menuHeight = 120;
+    const menuWidth = 170;
+    const menuHeight = 180;
 
     const spaceBelow = window.innerHeight - rect.bottom;
 
@@ -255,110 +338,128 @@ export default function UsersPage() {
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>isLoggedIn</th>
+              <th>Status</th>
               <th>Role</th>
-              <th>Actions</th>
+              {currentUser?.role !== "User" && <th>Actions</th>}
             </tr>
           </thead>
 
           <tbody>
             {users.length > 0 ? (
-              users.map((user) => (
-                <tr key={user._id ?? user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
+              users.map((user) => {
+                const userId = user._id ?? user.id;
 
-                  <td>
-                    <span
-                      className={`users-status ${
-                        user.isLoggedIn
-                          ? "users-status--online"
-                          : "users-status--offline"
-                      }`}
-                    >
-                      <span className="users-status__dot" />
-                      {user.isLoggedIn ? "Logged In" : "Logged Out"}
-                    </span>
-                  </td>
+                return (
+                  <tr key={userId}>
+                    <td>{user.name}</td>
 
-                  <td>{user.role}</td>
+                    <td>{user.email}</td>
 
-                  <td className="users-table__actions">
+                    <td>
+                      <span
+                        className={`users-status ${
+                          user.isLoggedIn
+                            ? "users-status--online"
+                            : "users-status--offline"
+                        }`}
+                      >
+                        <span className="users-status__dot" />
+                        {user.isLoggedIn ? "Logged In" : "Logged Out"}
+                      </span>
+                    </td>
+
+                    <td>{user.role}</td>
+
                     {currentUser?.role !== "User" && (
-                      <div className="action-menu-wrapper">
-                        <button
-                          type="button"
-                          className="action-menu-trigger"
-                          onClick={(e) =>
-                            toggleActionMenu(user._id ?? user.id, e)
-                          }
-                          aria-label={`Actions for ${user.name}`}
-                          aria-expanded={
-                            openMenuUserId === (user._id ?? user.id)
-                          }
-                        >
-                          &#8942;
-                        </button>
-
-                        {openMenuUserId === (user._id ?? user.id) && (
-                          <div
-                            className="action-menu"
-                            style={{
-                              position: "fixed",
-                              top: `${menuPosition.top}px`,
-                              left: `${menuPosition.left}px`,
-                            }}
+                      <td className="users-table__actions">
+                        <div className="action-menu-wrapper">
+                          <button
+                            type="button"
+                            className="action-menu-trigger"
+                            onClick={(e) => toggleActionMenu(userId, e)}
+                            aria-label={`Actions for ${user.name}`}
+                            aria-expanded={openMenuUserId === userId}
                           >
-                            {user.isLoggedIn && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenMenuUserId(null);
-                                  handleLogout(user._id ?? user.id);
-                                }}
-                              >
-                                Logout
-                              </button>
-                            )}
+                            &#8942;
+                          </button>
 
-                            {!user.isDeleted &&
-                              (currentUser?.role === "Admin" ||
-                                currentUser?.role === "Owner") && (
+                          {openMenuUserId === userId && (
+                            <div
+                              className="action-menu"
+                              style={{
+                                position: "fixed",
+                                top: `${menuPosition.top}px`,
+                                left: `${menuPosition.left}px`,
+                              }}
+                            >
+                              {user.isLoggedIn && (
                                 <button
                                   type="button"
-                                  className="action-menu__danger"
                                   onClick={() => {
                                     setOpenMenuUserId(null);
-                                    openDeleteModal(user);
+                                    handleLogout(userId);
                                   }}
                                 >
-                                  Delete
+                                  Logout
                                 </button>
                               )}
 
-                            {user.isDeleted &&
-                              currentUser?.role === "Owner" && (
-                                <button
-                                  type="button"
-                                  className="action-menu__recover"
-                                  onClick={() => {
-                                    setOpenMenuUserId(null);
-                                    openRecoverModal(user);
-                                  }}
-                                >
-                                  Recover
-                                </button>
-                              )}
-                          </div>
-                        )}
-                      </div>
+                              {!user.isDeleted &&
+                                (currentUser?.role === "Admin" ||
+                                  currentUser?.role === "Owner") && (
+                                  <button
+                                    type="button"
+                                    className="action-menu__danger"
+                                    onClick={() => {
+                                      setOpenMenuUserId(null);
+                                      openDeleteModal(user);
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+
+                              {user.isDeleted &&
+                                currentUser?.role === "Owner" && (
+                                  <button
+                                    type="button"
+                                    className="action-menu__recover"
+                                    onClick={() => {
+                                      setOpenMenuUserId(null);
+                                      openRecoverModal(user);
+                                    }}
+                                  >
+                                    Recover
+                                  </button>
+                                )}
+
+                              {currentUser?.role !== "User" &&
+                                !user.isDeleted && (
+                                  <button
+                                    type="button"
+                                    className="action-menu__role"
+                                    onClick={() => {
+                                      setOpenMenuUserId(null);
+                                      openRoleModal(user);
+                                    }}
+                                  >
+                                    Change Role
+                                  </button>
+                                )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
                     )}
-                  </td>
-                </tr>
-              ))
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="5" className="users-table__empty">
+                <td
+                  colSpan={currentUser?.role === "User" ? 4 : 5}
+                  className="users-table__empty"
+                >
                   No users found.
                 </td>
               </tr>
@@ -366,6 +467,8 @@ export default function UsersPage() {
           </tbody>
         </table>
       </section>
+
+      {/* DELETE MODAL */}
 
       {showDeleteModal && selectedUser && (
         <div className="delete-modal-backdrop" onClick={closeDeleteModal}>
@@ -379,8 +482,7 @@ export default function UsersPage() {
             <div className="delete-modal__header">
               <div>
                 <p className="users-page__eyebrow">User management</p>
-
-                <h2 id="delete-modal-title">Delete user ?</h2>
+                <h2 id="delete-modal-title">Delete user?</h2>
               </div>
 
               <button
@@ -396,6 +498,7 @@ export default function UsersPage() {
 
             <p className="delete-modal__description">
               Choose how you want to delete <strong>{selectedUser.name}</strong>
+              .
             </p>
 
             <div className="delete-modal__options">
@@ -444,6 +547,8 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* RECOVER MODAL */}
+
       {showRecoverModal && selectedUser && (
         <div className="delete-modal-backdrop" onClick={closeRecoverModal}>
           <div
@@ -456,7 +561,6 @@ export default function UsersPage() {
             <div className="delete-modal__header">
               <div>
                 <p className="users-page__eyebrow">User management</p>
-
                 <h2 id="recover-modal-title">Recover user?</h2>
               </div>
 
@@ -496,10 +600,88 @@ export default function UsersPage() {
                 {isRecovering ? "Recovering..." : "Yes, Recover User"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            {isRecovering && (
-              <span className="delete-modal__loading">Processing...</span>
-            )}
+      {/* CHANGE ROLE MODAL */}
+
+      {showRoleModal && selectedUser && (
+        <div className="delete-modal-backdrop" onClick={closeRoleModal}>
+          <div
+            className="delete-modal role-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="role-modal-title"
+          >
+            <div className="delete-modal__header">
+              <div>
+                <p className="users-page__eyebrow">User management</p>
+
+                <h2 id="role-modal-title">Change user role</h2>
+              </div>
+
+              <button
+                type="button"
+                className="delete-modal__close"
+                onClick={closeRoleModal}
+                disabled={isChangingRole}
+                aria-label="Close popup"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="delete-modal__description">
+              Select a new role for <strong>{selectedUser.name}</strong>.
+            </p>
+
+            <div className="role-options">
+              {AVAILABLE_ROLES.map((role) => (
+                <button
+                  type="button"
+                  key={role}
+                  className={`role-option ${
+                    selectedRole === role ? "role-option--selected" : ""
+                  }`}
+                  onClick={() => setSelectedRole(role)}
+                  disabled={isChangingRole}
+                >
+                  <span className="role-option__radio">
+                    {selectedRole === role && (
+                      <span className="role-option__radio-inner" />
+                    )}
+                  </span>
+
+                  <span>{role}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="delete-modal__footer">
+              <button
+                type="button"
+                className="delete-modal__cancel"
+                onClick={closeRoleModal}
+                disabled={isChangingRole}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="role-modal__confirm"
+                onClick={handleChangeRole}
+                disabled={
+                  isChangingRole ||
+                  !selectedRole ||
+                  selectedRole === selectedUser.role
+                }
+              >
+                {isChangingRole ? "Updating..." : "Update Role"}
+              </button>
+            </div>
           </div>
         </div>
       )}
