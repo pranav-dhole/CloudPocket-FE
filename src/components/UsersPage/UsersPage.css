@@ -151,6 +151,19 @@
   background-color: #b12d2d;
 }
 
+.recover-btn {
+  padding: 8px 12px;
+  color: white;
+  background-color: rgb(43, 223, 73);
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+}
+
+.recover-btn:hover {
+  background-color: #2db13f;
+}
+
 .delete-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -280,6 +293,12 @@
   margin-top: 22px;
 }
 
+.delete-modal__footer button {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
 .delete-modal__cancel {
   padding: 10px 18px;
   background: #f1f5f9;
@@ -303,6 +322,24 @@
 .delete-modal button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.delete-modal__footer .delete-modal__option {
+  flex: initial;
+  cursor: pointer;
+}
+
+.delete-modal__footer .delete-modal__option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-modal__footer .delete-modal__option {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 12px 16px;
+  text-align: center;
 }
 
 @media (max-width: 650px) {

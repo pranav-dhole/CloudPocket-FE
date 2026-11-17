@@ -12,6 +12,8 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showRecoverModal, setShowRecoverModal] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   const navigate = useNavigate();
 
@@ -116,6 +118,54 @@ export default function UsersPage() {
     }
   }
 
+  function openRecoverModal(user) {
+    setSelectedUser(user);
+    setShowRecoverModal(true);
+  }
+
+  function closeRecoverModal() {
+    if (isRecovering) return;
+
+    setSelectedUser(null);
+    setShowRecoverModal(false);
+  }
+
+  async function handleRecover() {
+    if (!selectedUser || isRecovering) return;
+
+    try {
+      setIsRecovering(true);
+      setError("");
+
+      const res = await fetch(`${BASE_URL}/user/recoverUser`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: selectedUser._id ?? selectedUser.id,
+        }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Recovery failed");
+      }
+
+      setShowRecoverModal(false);
+      setSelectedUser(null);
+
+      await fetchUsers();
+    } catch (err) {
+      console.error("User recovery error:", err);
+      setError(err.message || "Could not recover the user. Please try again.");
+    } finally {
+      setIsRecovering(false);
+    }
+  }
+
   async function fetchUser() {
     try {
       const res = await fetch(`${BASE_URL}/user`, {
@@ -174,8 +224,11 @@ export default function UsersPage() {
               <th>Name</th>
               <th>Email</th>
               <th>isLoggedIn</th>
+              <th>Role</th>
               <th></th>
-              {currentUser?.role === "Admin" && <th></th>}
+              {(currentUser?.role === "Admin" ||
+                currentUser?.role === "Owner") && <th></th>}
+              {currentUser?.role === "Owner" && <th></th>}
             </tr>
           </thead>
 
@@ -199,6 +252,8 @@ export default function UsersPage() {
                     </span>
                   </td>
 
+                  <td>{user.role}</td>
+
                   {currentUser?.role !== "User" && (
                     <td>
                       {user.isLoggedIn ? (
@@ -214,14 +269,34 @@ export default function UsersPage() {
                     </td>
                   )}
 
-                  {currentUser?.role === "Admin" && (
+                  {(currentUser?.role === "Admin" ||
+                    currentUser?.role === "Owner") && (
                     <td>
-                      <button
-                        className="delete-btn"
-                        onClick={() => openDeleteModal(user)}
-                      >
-                        Delete
-                      </button>
+                      {user.isDeleted ? (
+                        <div>Soft Deleted</div>
+                      ) : (
+                        <button
+                          className="delete-btn"
+                          onClick={() => openDeleteModal(user)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  )}
+
+                  {currentUser?.role === "Owner" && (
+                    <td>
+                      {user.isDeleted ? (
+                        <button
+                          className="recover-btn"
+                          onClick={() => openRecoverModal(user)}
+                        >
+                          Recover
+                        </button>
+                      ) : (
+                        <div>Not recoverable</div>
+                      )}
                     </td>
                   )}
                 </tr>
@@ -311,6 +386,66 @@ export default function UsersPage() {
                 <span className="delete-modal__loading">Processing...</span>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showRecoverModal && selectedUser && (
+        <div className="delete-modal-backdrop" onClick={closeRecoverModal}>
+          <div
+            className="delete-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recover-modal-title"
+          >
+            <div className="delete-modal__header">
+              <div>
+                <p className="users-page__eyebrow">User management</p>
+
+                <h2 id="recover-modal-title">Recover user?</h2>
+              </div>
+
+              <button
+                type="button"
+                className="delete-modal__close"
+                onClick={closeRecoverModal}
+                disabled={isRecovering}
+                aria-label="Close popup"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="delete-modal__description">
+              Are you sure you want to recover{" "}
+              <strong>{selectedUser.name}</strong>? Their account will be
+              reactivated and they will be able to log in again.
+            </p>
+
+            <div className="delete-modal__footer">
+              <button
+                type="button"
+                className="delete-modal__cancel"
+                onClick={closeRecoverModal}
+                disabled={isRecovering}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="delete-modal__option delete-modal__option--soft"
+                onClick={handleRecover}
+                disabled={isRecovering}
+              >
+                {isRecovering ? "Recovering..." : "Yes, Recover User"}
+              </button>
+            </div>
+
+            {isRecovering && (
+              <span className="delete-modal__loading">Processing...</span>
+            )}
           </div>
         </div>
       )}
