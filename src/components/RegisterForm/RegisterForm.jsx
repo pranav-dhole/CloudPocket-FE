@@ -355,11 +355,17 @@ export default function RegisterForm() {
                 const data = await loginWithGoogle(
                   credentialResponse.credential,
                 );
+
                 if (data.error) {
                   console.log(data);
                   return;
                 }
-                navigate("/");
+
+                if (data.requiresPasswordSetup) {
+                  navigate("/set-password");
+                } else {
+                  navigate("/");
+                }
               }}
               onError={() => {
                 console.log("Login Failed");

@@ -6,6 +6,7 @@ import RegisterForm from "./components/RegisterForm/RegisterForm";
 import "./App.css";
 import LoginForm from "./components/LoginForm/LoginForm";
 import UsersPage from "./components/UsersPage/UsersPage";
+import SetPassword from "./components/SetPassword/SetPassword";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/register" element={<RegisterForm />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/set-password" element={<SetPassword />} />
       </Routes>
     </BrowserRouter>
   );
